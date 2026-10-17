@@ -45,11 +45,15 @@ class WallpaperPicker extends StatelessWidget {
                 ),
               ),
               child: selected
-                  ? const Align(
+                  ? Align(
                       alignment: Alignment.topRight,
                       child: Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.check_circle, size: 18, color: Colors.white),
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.check_circle,
+                          size: 18,
+                          color: wallpaper.isDark ? Colors.white : const Color(0xFF101828),
+                        ),
                       ),
                     )
                   : Align(
@@ -58,10 +62,20 @@ class WallpaperPicker extends StatelessWidget {
                         padding: const EdgeInsets.all(6),
                         child: Text(
                           wallpaper.name,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            // Light wallpapers need dark labels: white text on a
+                            // pale gradient was unreadable.
+                            color: wallpaper.isDark ? Colors.white : const Color(0xFF101828),
                             fontSize: 10,
-                            shadows: <Shadow>[Shadow(blurRadius: 4, color: Colors.black54)],
+                            fontWeight: FontWeight.w600,
+                            shadows: <Shadow>[
+                              Shadow(
+                                blurRadius: 4,
+                                color: wallpaper.isDark
+                                    ? Colors.black54
+                                    : const Color(0x66FFFFFF),
+                              ),
+                            ],
                           ),
                         ),
                       ),

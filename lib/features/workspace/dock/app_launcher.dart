@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -62,38 +64,42 @@ class _AppLauncherOverlayState extends ConsumerState<AppLauncherOverlay> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.scrim.withValues(alpha: 0.55),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760, maxHeight: 680),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Material(
-              borderRadius: BorderRadius.circular(28),
-              color: theme.colorScheme.surfaceContainerLow,
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: TextField(
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: 'Search apps and modules',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: IconButton(
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.of(context).maybePop(),
+      // The panel is sized from the window so it never runs off the edge on
+      // short or narrow screens.
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxWidth = math.min(760.0, constraints.maxWidth - 24);
+          final maxHeight = math.min(680.0, constraints.maxHeight - 24);
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
+              child: Material(
+                borderRadius: BorderRadius.circular(28),
+                color: theme.colorScheme.surfaceContainerLow,
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: TextField(
+                        autofocus: true,
+                        decoration: InputDecoration(
+                          hintText: 'Search apps and modules',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: IconButton(
+                            tooltip: 'Close',
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          ),
                         ),
+                        onChanged: (value) => setState(() => _query = value),
                       ),
-                      onChanged: (value) => setState(() => _query = value),
                     ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                      children: <Widget>[
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        children: <Widget>[
                         if (pinnedItems.isNotEmpty) ...<Widget>[
                           _LauncherHeader(
                             title: 'Pinned',
@@ -127,6 +133,7 @@ class _AppLauncherOverlayState extends ConsumerState<AppLauncherOverlay> {
                             padding: EdgeInsets.symmetric(vertical: 48),
                             child: Center(child: Text('Nothing matches your search')),
                           ),
+                        const _LauncherNote(),
                       ],
                     ),
                   ),
@@ -134,7 +141,8 @@ class _AppLauncherOverlayState extends ConsumerState<AppLauncherOverlay> {
               ),
             ),
           ),
-        ),
+        );
+        },
       ),
     );
   }
@@ -179,8 +187,15 @@ class _LauncherHeader extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 16, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
-          Text(title, style: theme.textTheme.titleSmall),
-          const Spacer(),
+          // Section titles ellipsise so the trailing action stays reachable.
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
           ?trailing,
         ],
       ),
@@ -254,5 +269,39 @@ class _LauncherGrid extends ConsumerWidget {
       return;
     }
     ref.read(windowsProvider.notifier).open(item.id, ref.read(activeWorkspaceProvider));
+  }
+}
+
+/// Honest note about where installed applications are shown.
+///
+/// Android has no public API that lets one app host another app's Activity, so
+/// installed apps keep opening in the system while AeroDesk modules run inside
+/// AeroDesk windows. Saying so here keeps the claim accurate.
+class _LauncherNote extends StatelessWidget {
+  const _LauncherNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, left: 4, right: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.info_outline, size: 14, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'AeroDesk modules open in desktop windows. Installed apps start in '
+              'the system launcher: Android does not allow one app to embed '
+              'another app inside its own window.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -3,6 +3,38 @@
 All notable changes to this project are documented in this file. The format is
 based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.1] - 2026-10-17
+
+### Fixed
+- Desktop icon grid no longer pushes the last column off the right edge: the
+  column count is computed from the usable width minus the grid margin, which
+  used to overflow on landscape windows whose width was not an exact multiple
+  of the cell width.
+- The dock no longer covers the last row of desktop icons. The desktop now
+  reserves the dock height, and the dock scrolls horizontally instead of
+  overflowing when it holds many entries.
+- Icon positions saved on a smaller or rotated screen are re-flowed into the
+  grid instead of being clamped into a corner, which is what made the desktop
+  look ragged after a rotation.
+- Dragging a desktop icon no longer writes settings to disk on every pointer
+  move. The position is kept in local state and persisted once when the gesture
+  ends, removing the drag stutter.
+- Light wallpapers (Daylight, Sand, Mint) render dark icon labels and dark
+  picker labels; white text on pale gradients was unreadable.
+- The app launcher panel is sized from the window, so it no longer runs off the
+  edge of short landscape windows.
+- Card titles on the Device page ellipsise instead of overflowing narrow phone
+  windows.
+- Short windows (landscape phones, split screen) use the navigation rail
+  instead of the bottom bar so the desktop keeps its height.
+
+### Added
+- Compact desktop icon cells on short windows, so landscape still shows more
+  than one row of icons.
+- Layout regression tests for phone portrait, phone landscape, tablet and
+  large windows, plus an overflow scan over every section, module window and
+  the launcher.
+
 ## [1.0.0] - 2026-10-17
 
 Initial release of AeroDesk.

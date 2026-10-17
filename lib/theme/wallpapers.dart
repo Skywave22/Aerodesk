@@ -21,6 +21,14 @@ class WallpaperOption {
   final Alignment end;
   final bool isDark;
 
+  /// Colour used for icon labels drawn on top of this wallpaper.
+  Color get iconLabelColor => isDark ? Colors.white : const Color(0xFF101828);
+
+  /// Shadow that keeps labels readable on busy gradients.
+  List<Shadow> get iconLabelShadows => isDark
+      ? const <Shadow>[Shadow(blurRadius: 4, color: Colors.black87)]
+      : const <Shadow>[Shadow(blurRadius: 4, color: Color(0x80FFFFFF))];
+
   /// Wallpapers offered in Settings -> Appearance and the quick panel.
   static const List<WallpaperOption> options = <WallpaperOption>[
     WallpaperOption(

@@ -24,22 +24,22 @@ sharing) through a single method channel.
 
 | Area | What works |
 | --- | --- |
-| Desktop workspace | Wallpaper, draggable desktop icons with a grid layout and saved positions, 4 virtual workspaces with a switcher |
+| Desktop workspace | Wallpaper, draggable desktop icons in a grid that reserves space for the dock and adapts to short windows (compact cells), saved positions that re-flow when the window changes size, 4 virtual workspaces with a switcher |
 | Window manager | Drag, resize, minimise, maximise/restore, close, focus management, snap layouts (left / right / quarters), taskbar badges in the dock |
-| App launcher | Search, pinned apps, recently used list, app info and launch, grouped into AeroDesk modules and installed applications |
+| App launcher | Search, pinned apps, recently used list, app info and launch, grouped into AeroDesk modules and installed applications; the panel is sized to the window and states plainly that installed apps start in the system |
 | AeroFiles | Browse, list and grid views, sort by name/type/size/date, in-folder search, create folder, create file, rename, copy and move into a chosen destination, delete with confirmation, file details, open-with through FileProvider, multi-select |
 | Workspace modules | Notes (autosaving), Calculator (expression engine plus keyboard input), Clock (live analog and digital face, stopwatch with laps, countdown timer) |
-| Settings | Theme mode, 7 accent colours, 8 wallpapers, dock size and auto-hide, desktop icon labels, sorting and open gesture, window snapping and animations, launcher pins, shortcut reference, reset to defaults |
+| Settings | Theme mode, 7 accent colours, 8 wallpapers (icon labels and picker swatches switch colour for light wallpapers so text stays readable), dock size and auto-hide, desktop icon labels, sorting and open gesture, window snapping and animations, launcher pins, shortcut reference, reset to defaults |
 | Device info | Manufacturer, model, board, hardware, Android version, SDK level, security patch, CPU cores, window size, resolution, density, refresh rate, storage, RAM, battery — all from public APIs |
 | Input | Keyboard shortcuts (workspaces, windows, calculator), hover states, right-click context menus on the desktop, icons and window title bars |
 | Persistence | Every preference, launcher pin, note and desktop icon position is stored locally with SharedPreferences and restored on restart (recently used apps are per session) |
-| Quality | 29 unit and widget tests, `flutter analyze` clean, debug APK builds locally and in CI |
+| Quality | 43 unit and widget tests (including layout regression tests for phone, landscape and large windows), `flutter analyze` clean, debug APK builds locally and in CI |
 
 ### Experimental (works, device-dependent)
 
 | Feature | Notes |
 | --- | --- |
-| Large-screen layout | The shell adapts to phones, tablets and wide or external-display windows (navigation rail from 840 dp, labels from 1180 dp). Android desktop mode behaviour varies by OEM. |
+| Large-screen layout | The shell adapts to phones, tablets and wide or external-display windows (navigation rail from 840 dp width or below 460 dp height, labels from 1180 dp). Android desktop mode behaviour varies by OEM. |
 | Window snapping | Half, quarter and maximise layouts on the internal window manager. |
 | Physical keyboard/mouse | Fully supported where Android delivers the events; some system shortcuts stay with the OS. |
 
@@ -47,7 +47,7 @@ sharing) through a single method channel.
 
 | Feature | Notes |
 | --- | --- |
-| Managing external app windows | Requires Android APIs that ordinary apps cannot use; the window manager intentionally only manages AeroDesk's own modules. |
+| Managing external app windows | **Not possible with public Android APIs.** No supported API lets one app embed another app's Activity in its own window (`ACTIVITY_EMBEDDING`, `ActivityView` and `setLaunchDisplayId` need system privileges), so installed apps start in the system launcher while AeroDesk modules run in AeroDesk windows. |
 | Home-screen replacement | Registering as a default HOME/LAUNCHER app is not enabled in v1. |
 | Additional workspace modules | More built-in tools can be added through the module registry. |
 | Release signing pipeline | The workflow exists; it needs repository secrets (see below). |

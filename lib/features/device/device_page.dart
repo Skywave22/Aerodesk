@@ -159,7 +159,16 @@ class _InfoCard extends StatelessWidget {
             children: <Widget>[
               Icon(icon, size: 18, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Text(title, style: theme.textTheme.titleSmall),
+              // Long card titles must ellipsise instead of overflowing on
+              // narrow phone windows.
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),

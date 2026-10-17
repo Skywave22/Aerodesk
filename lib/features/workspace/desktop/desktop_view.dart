@@ -9,12 +9,47 @@ import 'desktop_icon_item.dart';
 import '../windows/aero_window.dart';
 import '../windows/window_manager.dart';
 
+/// Space kept between the icon grid and the edges of the desktop.
+///
+/// Without it the grid can spill icons past the right edge whenever the
+/// available width is not an exact multiple of the cell width.
+const double desktopGridMargin = 12;
+
 /// The AeroDesk desktop: wallpaper, icons and open windows.
 class DesktopView extends ConsumerStatefulWidget {
-  const DesktopView({super.key});
+  const DesktopView({super.key, this.reservedBottom = 0});
+
+  /// Height reserved at the bottom of the desktop (dock, navigation bar).
+  ///
+  /// Icons are never placed inside this strip, so the dock can no longer
+  /// cover the last row of icons.
+  final double reservedBottom;
 
   @override
   ConsumerState<DesktopView> createState() => _DesktopViewState();
+}
+
+/// Cell size of the desktop icon grid.
+///
+/// [compact] is used on short windows (landscape phones, split screen) where a
+/// full size cell would only fit a single row of icons.
+Size desktopIconCell(AeroSettings settings, {bool compact = false}) {
+  if (!settings.showDesktopLabels) {
+    return compact
+        ? const Size(76, 76)
+        : const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid);
+  }
+  return compact
+      ? const Size(76, 96)
+      : const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid + 22);
+}
+
+/// Area of the desktop that icons may occupy.
+Rect desktopUsableArea(Size bounds, double reservedBottom, Size cell) {
+  final width = (bounds.width - 2 * desktopGridMargin).clamp(cell.width, double.infinity);
+  final height = (bounds.height - reservedBottom - desktopGridMargin)
+      .clamp(cell.height, double.infinity);
+  return Rect.fromLTWH(desktopGridMargin, desktopGridMargin, width, height);
 }
 
 class _DesktopViewState extends ConsumerState<DesktopView> {
@@ -29,11 +64,11 @@ class _DesktopViewState extends ConsumerState<DesktopView> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bounds = Size(constraints.maxWidth, constraints.maxHeight);
-        final iconCell = settings.showDesktopLabels
-            ? const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid + 22)
-            : const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid);
-        final columns = (bounds.width / iconCell.width).floor().clamp(1, 12);
-        final rows = (bounds.height / iconCell.height).floor().clamp(1, 12);
+        final compact = bounds.height < 460;
+        final cell = desktopIconCell(settings, compact: compact);
+        final usable = desktopUsableArea(bounds, widget.reservedBottom, cell);
+        final columns = (usable.width / cell.width).floor().clamp(1, 12);
+        final rows = (usable.height / cell.height).floor().clamp(1, 12);
 
         return Stack(
           fit: StackFit.expand,
@@ -56,7 +91,7 @@ class _DesktopViewState extends ConsumerState<DesktopView> {
                 child: Stack(
                   children: <Widget>[
                     for (var index = 0; index < items.length; index++)
-                      _buildIcon(items[index], index, columns, rows, bounds, workspace),
+                      _buildIcon(items[index], index, columns, rows, usable, workspace, cell),
                   ],
                 ),
               ),
@@ -79,47 +114,53 @@ class _DesktopViewState extends ConsumerState<DesktopView> {
     int index,
     int columns,
     int rows,
-    Size bounds,
+    Rect usable,
     int workspace,
+    Size cell,
   ) {
     final settings = ref.read(settingsProvider);
-    final iconCell = settings.showDesktopLabels
-        ? const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid + 22)
-        : const Size(AeroConstants.desktopGrid, AeroConstants.desktopGrid);
     final column = index % columns;
     final row = index ~/ columns;
     if (row >= rows) return const SizedBox.shrink();
 
-    final stored = settings.iconPositions['workspace-$workspace:${item.id}'];
-    Offset position;
-    if (stored != null) {
-      final parts = stored.split('|');
-      if (parts.length == 2) {
-        final x = double.tryParse(parts[0]);
-        final y = double.tryParse(parts[1]);
-        if (x != null && y != null) {
-          position = Offset(x, y);
-        } else {
-          position = _gridPosition(column, row, iconCell);
-        }
-      } else {
-        position = _gridPosition(column, row, iconCell);
-      }
-    } else {
-      position = _gridPosition(column, row, iconCell);
-    }
+    final grid = Offset(
+      usable.left + column * cell.width,
+      usable.top + row * cell.height,
+    );
+    final stored = _storedPosition(settings, workspace, item.id);
+    // A position that no longer fits (saved on another screen size or before a
+    // rotation) is re-flowed instead of being clamped into a corner.
+    final position = stored != null && _fits(stored, usable, cell) ? stored : grid;
 
     return DesktopIconItem(
       key: ValueKey<String>('${item.kind.name}:${item.id}'),
       item: item,
       workspace: workspace,
       position: position,
-      bounds: bounds,
+      bounds: usable.size,
+      cell: cell,
+      boundsOrigin: usable.topLeft,
     );
   }
 
-  Offset _gridPosition(int column, int row, Size iconCell) {
-    return Offset(12 + column * iconCell.width, 12 + row * iconCell.height);
+  /// Reads a persisted icon position for [itemId] on [workspace].
+  Offset? _storedPosition(AeroSettings settings, int workspace, String itemId) {
+    final stored = settings.iconPositions['workspace-$workspace:$itemId'];
+    if (stored == null) return null;
+    final parts = stored.split('|');
+    if (parts.length != 2) return null;
+    final x = double.tryParse(parts[0]);
+    final y = double.tryParse(parts[1]);
+    if (x == null || y == null) return null;
+    return Offset(x, y);
+  }
+
+  /// True when an icon placed at [position] stays fully inside [usable].
+  bool _fits(Offset position, Rect usable, Size cell) {
+    return position.dx >= usable.left - 0.5 &&
+        position.dy >= usable.top - 0.5 &&
+        position.dx + cell.width <= usable.right + 0.5 &&
+        position.dy + cell.height <= usable.bottom + 0.5;
   }
 
   Future<void> _showDesktopMenu() async {

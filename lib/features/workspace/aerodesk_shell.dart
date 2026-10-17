@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/router.dart';
 import '../../core/constants/aero_constants.dart';
+import '../../core/services/settings_service.dart';
 import '../device/device_page.dart';
 import '../files/files_page.dart';
 import '../settings/settings_page.dart';
@@ -30,10 +31,17 @@ class _AeroDeskShellState extends ConsumerState<AeroDeskShell> {
   /// Width at which the navigation rail shows labels.
   static const double _extendedRailBreakpoint = 1180;
 
+  /// Height below which the navigation rail replaces the bottom bar so the
+  /// desktop keeps enough room for icons.
+  static const double _shortWindowBreakpoint = 460;
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final useRail = width >= _railBreakpoint;
+    final size = MediaQuery.sizeOf(context);
+    final width = size.width;
+    // Short windows (landscape phones, split screen) get the side rail as
+    // well: a bottom navigation bar would eat most of the desktop height.
+    final useRail = width >= _railBreakpoint || size.height < _shortWindowBreakpoint;
     final extended = width >= _extendedRailBreakpoint;
 
     return Shortcuts(
@@ -190,9 +198,19 @@ class _AeroDeskShellState extends ConsumerState<AeroDeskShell> {
 
   Widget _buildSection(bool useRail) {
     if (_section == ShellSection.workspace) {
+      final bottomInset = useRail ? MediaQuery.paddingOf(context).bottom : 80.0;
+      // The dock floats over the desktop, so the icon grid has to stop before
+      // it or the dock covers the last row of icons. While the dock is set to
+      // auto-hide it is out of the way, and only a thin strip is kept so a
+      // hover can still reveal it.
+      final settings = ref.watch(settingsProvider);
+      final dockHeight = settings.dockAutoHide
+          ? 8.0 + bottomInset
+          : AeroDeskDock.heightFor(settings.dockSize) + bottomInset;
       return _WorkspaceSection(
         sectionKey: _sectionKey,
-        bottomInset: useRail ? 0.0 : MediaQuery.paddingOf(context).bottom + 80,
+        bottomInset: bottomInset,
+        dockHeight: dockHeight,
       );
     }
     return KeyedSubtree(
@@ -239,10 +257,15 @@ class OpenLauncherIntent extends Intent {
 
 /// Workspace section: desktop plus the dock overlay.
 class _WorkspaceSection extends StatelessWidget {
-  const _WorkspaceSection({required this.sectionKey, required this.bottomInset});
+  const _WorkspaceSection({
+    required this.sectionKey,
+    required this.bottomInset,
+    required this.dockHeight,
+  });
 
   final GlobalKey sectionKey;
   final double bottomInset;
+  final double dockHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +273,7 @@ class _WorkspaceSection extends StatelessWidget {
       key: sectionKey,
       child: Stack(
         children: <Widget>[
-          const Positioned.fill(child: DesktopView()),
+          Positioned.fill(child: DesktopView(reservedBottom: dockHeight)),
           Positioned(
             left: 0,
             right: 0,

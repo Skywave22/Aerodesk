@@ -4,15 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/app_info.dart';
 import '../../../core/services/apps_service.dart';
 import '../../../core/services/settings_service.dart';
-import '../../../theme/aerodesk_theme.dart';
 import '../../modules/module_registry.dart';
 import '../desktop/desktop_item.dart';
 import 'app_launcher.dart';
 import '../windows/window_manager.dart';
 
+/// Vertical space the dock occupies for a given icon size setting.
+double dockHeightFor(double dockSize) => dockSize + 26;
+
 /// The AeroDesk dock: module shortcuts, recent apps and a desktop toggle.
 class AeroDeskDock extends ConsumerStatefulWidget {
   const AeroDeskDock({super.key, this.bottomInset = 0});
+
+  /// Vertical space the dock occupies for a given icon size setting.
+  static double heightFor(double dockSize) => dockHeightFor(dockSize);
 
   /// Extra space kept below the dock, e.g. for a bottom navigation bar.
   final double bottomInset;
@@ -80,45 +85,51 @@ class _DockSurface extends ConsumerWidget {
     final recent = ref.watch(recentAppsProvider).take(6).toList();
     final apps = ref.watch(installedAppsProvider).valueOrNull ?? const [];
 
+    final children = <Widget>[
+      _DockButton(
+        icon: Icons.grid_view_rounded,
+        label: 'App launcher',
+        size: iconSize,
+        onPressed: () => _openLauncher(context),
+      ),
+      _DockDivider(height: iconSize),
+      for (final module in kModules) ...<Widget>[
+        _DockButton(
+          icon: module.icon,
+          label: module.title,
+          size: iconSize,
+          active: windows.any((window) => window.moduleId == module.id && !window.minimized),
+          onPressed: () => ref.read(windowsProvider.notifier).open(module.id, workspace),
+        ),
+      ],
+      if (recent.isNotEmpty) ...<Widget>[
+        _DockDivider(height: iconSize),
+        for (final packageName in recent) ...<Widget>[
+          _DockAppButton(
+            app: appByPackage(apps, packageName),
+            size: iconSize,
+          ),
+        ],
+      ],
+    ];
+
     return Material(
       elevation: 8,
       color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.92),
       borderRadius: BorderRadius.circular(999),
+      clipBehavior: Clip.antiAlias,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        constraints: const BoxConstraints(maxHeight: 96),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _DockButton(
-              icon: Icons.grid_view_rounded,
-              label: 'App launcher',
-              size: iconSize,
-              onPressed: () => _openLauncher(context),
-            ),
-            _DockDivider(),
-            for (final module in kModules) ...<Widget>[
-              _DockButton(
-                icon: module.icon,
-                label: module.title,
-                size: iconSize,
-                active: windows.any((window) => window.moduleId == module.id && !window.minimized),
-                onPressed: () => ref.read(windowsProvider.notifier).open(module.id, workspace),
-              ),
-            ],
-            if (recent.isNotEmpty) ...<Widget>[
-              _DockDivider(),
-              for (final packageName in recent) ...<Widget>[
-                _DockAppButton(
-                  app: appByPackage(apps, packageName),
-                  size: iconSize,
-                ),
-              ],
-            ],
-          ],
+        // The dock scrolls instead of overflowing when it holds many entries,
+        // which used to push buttons off the edge of narrow screens.
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(children: children),
         ),
       ),
     );
@@ -218,12 +229,16 @@ AppInfo? appByPackage(List<AppInfo> apps, String packageName) {
 }
 
 class _DockDivider extends StatelessWidget {
+  const _DockDivider({this.height = 24});
+
+  final double height;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       width: 1,
-      height: AeroDimens.radiusLg,
+      height: height,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
     );
