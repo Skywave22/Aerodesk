@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: AeroDesk documentation
+    url: https://github.com/Skywave22/Aerodesk#readme
+    about: Feature status, build instructions and permissions are documented in the README.
+  - name: Security policy
+    url: https://github.com/Skywave22/Aerodesk/blob/main/CONTRIBUTING.md
+    about: Read CONTRIBUTING.md before reporting a security problem.

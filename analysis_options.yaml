@@ -1,0 +1,24 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+  errors:
+    deprecated_member_use: warning
+  exclude:
+    - build/**
+    - android/**
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_empty_else
+    - avoid_print
+    - avoid_unnecessary_containers
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_final_fields
+    - prefer_final_locals
+    - sized_box_for_whitespace
+    - use_super_parameters

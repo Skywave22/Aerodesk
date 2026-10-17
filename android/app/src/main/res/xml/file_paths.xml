@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- AeroFiles can open any file the user can reach, so the provider is
+         scoped to the whole filesystem. Access is granted per URI with
+         FLAG_GRANT_READ_URI_PERMISSION, never as a persistent grant. -->
+    <root-path
+        name="root"
+        path="." />
+    <external-path
+        name="external"
+        path="." />
+    <files-path
+        name="internal"
+        path="." />
+    <cache-path
+        name="cache"
+        path="." />
+</paths>
